@@ -3,14 +3,18 @@
   - [直接拷贝, eager copy](#直接拷贝-eager-copy)
   - [COW, copy-on-write](#cow-copy-on-write)
   - [SSO, small string optimization](#sso-small-string-optimization)
-- [fbstring](#fbstring)
+- [fbstring概述](#fbstring概述)
   - [概述](#概述)
   - [组织架构](#组织架构)
   - [字符串存储数据结构](#字符串存储数据结构)
-  - [字符串类型category](#字符串类型category)
-    - [设置category](#设置category)
-    - [获取category](#获取category)
-    - [获取capacity](#获取capacity)
+- [类型,大小，容量](#类型大小容量)
+  - [设置category](#设置category)
+  - [获取category](#获取category)
+  - [获取size](#获取size)
+  - [获取capacity](#获取capacity)
+- [RefCounted,引用计数的实现](#refcounted引用计数的实现)
+  - [<atomic>操作](#atomic操作)
+- [初始化操作](#初始化操作)
 ---------------------------------------------------------------------------------------------------------------------
 # string常用的三种实现方式
 
@@ -65,7 +69,7 @@ class string {
 };
 ```
 
-# fbstring
+# fbstring概述
 
 ## 概述
 
@@ -93,6 +97,9 @@ class string {
   - 使用 union 中的 Char small_存储字符串，即对象本身的栈空间
   - SSO 的场景并不需要 capacity，因为此时利用的是栈空间，或者理解此种情况下的 capacity=maxSmallSize
   - 利用 small_的一个字节来存储 size(位于最后)，而且具体存储的不是 size，而是maxSmallSize - s
+    - 这样做的原因是让small strings 可以多存储一个字节 。
+    - 因为假如存储 size 的话，small中最后两个字节就得是\0 和 size，但是存储maxSmallSize - size，当 size == maxSmallSize 时，small的最后一个字节恰好也是\0。
+  - 因为要利用最后一个字节存储size和category,所以SSO的最大长度为sizeof(ml_)-1,64位系统下位23
 - medium strings（eager copy）时，使用 union 中的MediumLarge ml_
   - Char* data_ ： 指向分配在堆上的字符串。
   - size_t size：字符串长度。
@@ -139,7 +146,7 @@ struct RefCounted {
 
 ```
 
-## 字符串类型category
+# 类型,大小，容量
 
 - 因为只有三种类型，所以只需要 2 个 bit 就能够区分
 - kIsLittleEndian 为判断当前平台的大小端，大端和小端的存储方式不同
@@ -155,7 +162,7 @@ enum class Category : category_type {
     isLarge = kIsLittleEndian ? 0x40 : 0x1,        //  01000000 , 00000001
 };
 ```
-### 设置category
+## 设置category
 
 - 以下操作的目的，都是为了把表示category的两个bit放在这个Union的最后一个字节中
 - ml_的最后一个字节，即最大的地址
@@ -172,6 +179,7 @@ union {
 ```
 
 - 对于small strings，两个bit存放在small_的最后一个字节中
+  - 在setsize时顺便设置了
   - small_的最后一个字节同时保存着size和category两个值
   - 因为size的值最大为23，一个字节有8位，可以分出2位用来记录category，其他6位记录size
   - 小端法时表示category的两个bit位于字节的最左边，因为size值最大位23，可以确保最左边两位为00
@@ -203,7 +211,7 @@ void setCapacity(size_t cap, Category cat) {
 - large strings
   - 同样使用 MediumLarge 的 setCapacity，算法相同，只是 category 的值不同。
 
-### 获取category
+## 获取category
 
 - 通过bytes_[lastChar]获得union结构的最高地址的那个字节
 - 然后再通过&运算得到category值
@@ -226,7 +234,13 @@ Category category() const {
 }
 ```
 
-### 获取capacity
+
+## 获取size
+
+- medium strings和large strings直接返回ml_.size()
+- small strings的size存放在samll_的最后一个字节中，并且存储的是maxSmallSize-size 
+
+## 获取capacity
 
 - small strings : 直接返回 maxSmallSize，前面有分析过。
 - medium strings : 返回 ml_.capacity()。
@@ -235,3 +249,17 @@ Category category() const {
   - 否则，返回 ml_.capacity()
 - ml.capacity()
   - 目的就是消掉capacity_中category占的两位
+  - 大端法时右移两位就行了
+  - 小端法和一个掩码并
+
+
+
+# RefCounted,引用计数的实现
+
+## <atomic>操作
+
+
+
+
+
+# 初始化操作
