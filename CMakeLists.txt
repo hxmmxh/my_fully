@@ -7,10 +7,8 @@ link_directories(${PROJECT_BINARY_DIR}/lib)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-
-add_library(Core STATIC hmalloc.h likely.h)
 # aux_source_directory(. WebServer_srcs)
 add_library(HString STATIC hstring.cpp)
 
-add_executable(string stest test/stest.cpp)
-target_link_libraries(stest HString Core)
+add_executable(stest test/stest.cpp)
+target_link_libraries(stest HString)

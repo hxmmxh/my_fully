@@ -85,7 +85,7 @@ void hstring_core::MediumLarge::setCapacity(size_t cap, Category cat)
 
 /*------------------------------------------RefCounted------------------------------------------------------------------------------*/
 
-size_t hstring_core::RefCounted::getDataOffset()
+constexpr size_t hstring_core::RefCounted::getDataOffset()
 {
     return offsetof(RefCounted, data_);
 }
@@ -296,7 +296,7 @@ void hstring_core::initSmall(const char *const data, const size_t size)
 
 void hstring_core::initMedium(const char *const data, const size_t size)
 {
-    auto const allocSize = (1 + size) * sizeof(char));
+    auto const allocSize = (1 + size) * sizeof(char);
     ml_.data_ = static_cast<char *>(malloc(allocSize));
     if (FOOL_LIKELY(size > 0))
     {
@@ -429,7 +429,7 @@ void hstring_core::reserve(size_t minCapacity)
     assert(capacity() >= minCapacity);
 }
 
-char *hstring_core::expandNoinit(const size_t delta, bool expGrowth = false)
+char *hstring_core::expandNoinit(const size_t delta, bool expGrowth)
 {
     // 获取足够的空间，然后修改size就行了
     // 返回新增元素的首地址

@@ -19,7 +19,7 @@ namespace fool
         // POD（Plain Old Data）指的是能够像C语言中的结构体那样进行处理的一种数据类型，比如能够使用memcpy()来复制内存，使用memset()进行初始化等。
         // 传入两个迭代器，从b开始拷贝n个元素到d中
         template <class InIt, class OutIt>
-        inline std::pair<InIt, OutIt> hstring_detail::copy_n(InIt b, typename std::iterator_traits<InIt>::difference_type n, OutIt d);
+        inline std::pair<InIt, OutIt> copy_n(InIt b, typename std::iterator_traits<InIt>::difference_type n, OutIt d);
         // 把b和e之间的元素都设为c,
         template <class Pod, class T>
         inline void podFill(Pod *b, Pod *e, T c);
